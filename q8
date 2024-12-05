@@ -1,0 +1,149 @@
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.stream.IntStream;
+
+public class questaoOito {
+    // Matriz de adjacência de exemplo
+    private static final int[][] A = {
+            {0, 1, 1, 0, 1, 1, 0, 0, 0, 1},
+            {0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+            {0, 1, 1, 0, 0, 1, 1, 0, 0, 1},
+            {0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
+            {0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+            {0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
+            {0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+            {0, 1, 1, 0, 0, 1, 0, 1, 0, 1},
+            {0, 0, 0, 0, 0, 1, 0, 0, 0, 0}
+    };
+
+    // Método para calcular a transposta de uma matriz
+    private static int[][] transpose(int[][] matriz) {
+        int[][] transposta = new int[matriz[0].length][matriz.length];
+        for (int i = 0; i < matriz.length; i++) {
+            for (int j = 0; j < matriz[0].length; j++) {
+                transposta[j][i] = matriz[i][j];
+            }
+        }
+        return transposta;
+    }
+
+    // Método para calcular a norma de um vetor
+    private static double norma(double[] vetor) {
+        return Math.sqrt(Arrays.stream(vetor).map(x -> x * x).sum());
+    }
+
+    // Método para normalizar um vetor
+    private static double[] normalizar(double[] vetor) {
+        double normaVetor = norma(vetor);
+        return Arrays.stream(vetor).map(x -> x / normaVetor).toArray();
+    }
+
+    // Método para multiplicar matriz por vetor
+    private static double[] multiplicarMatrizVetor(int[][] matriz, double[] vetor) {
+        return Arrays.stream(matriz)
+                .mapToDouble(linha ->
+                        IntStream.range(0, linha.length)
+                                .mapToDouble(j -> linha[j] * vetor[j])
+                                .sum()
+                )
+                .toArray();
+    }
+
+    // Método para calcular o vetor de autoridade
+    private static double[] calcularAutoridade(int[][] A, int iteracoes, double tolerancia) {
+        int[][] At = transpose(A);
+        int[][] AtA = multiplicarMatrizes(At, A);
+
+        // Inicializa o vetor a0 uniformemente
+        double[] aK = new double[AtA.length];
+        Arrays.fill(aK, 1.0);
+        aK = normalizar(aK);
+
+        double[] aK1;
+        for (int i = 0; i < iteracoes; i++) {
+            aK1 = multiplicarMatrizVetor(AtA, aK);
+            aK1 = normalizar(aK1);
+
+            // Verifica a convergência
+            boolean convergiu = true;
+            for (int j = 0; j < aK.length; j++) {
+                if (Math.abs(aK[j] - aK1[j]) >= tolerancia) {
+                    convergiu = false;
+                    break;
+                }
+            }
+
+            if (convergiu) break;
+            aK = aK1;
+        }
+
+        return aK;
+    }
+
+    // Método para multiplicar duas matrizes
+    private static int[][] multiplicarMatrizes(int[][] m1, int[][] m2) {
+        int[][] resultado = new int[m1.length][m2[0].length];
+        for (int i = 0; i < m1.length; i++) {
+            for (int j = 0; j < m2[0].length; j++) {
+                for (int k = 0; k < m2.length; k++) {
+                    resultado[i][j] += m1[i][k] * m2[k][j];
+                }
+            }
+        }
+        return resultado;
+    }
+
+    // Método para mostrar os resultados
+    private static void mostrarResultados(double[] vetorAutoridade) {
+        // Cria um array de sites com seus índices e valores de autoridade
+        SiteAutoridade[] sitesRanqueados = new SiteAutoridade[vetorAutoridade.length];
+        for (int i = 0; i < vetorAutoridade.length; i++) {
+            sitesRanqueados[i] = new SiteAutoridade(i + 1, vetorAutoridade[i]);
+        }
+
+        // Ordena os sites em ordem decrescente de autoridade
+        Arrays.sort(sitesRanqueados, Comparator.comparingDouble(SiteAutoridade::getAutoridade).reversed());
+
+        // Imprime os resultados
+        System.out.println("Ranking de Sites por Autoridade:");
+        for (SiteAutoridade site : sitesRanqueados) {
+            System.out.printf("Site %d: %.4f%n", site.getSite(), site.getAutoridade());
+        }
+
+        // Apresentação de dados estatísticos adicionais
+        double somaAutoridade = Arrays.stream(vetorAutoridade).sum();
+        double mediaAutoridade = somaAutoridade / vetorAutoridade.length;
+
+        System.out.println("\nEstatísticas Adicionais:");
+        System.out.printf("Soma Total da Autoridade: %.4f%n", somaAutoridade);
+        System.out.printf("Média da Autoridade: %.4f%n", mediaAutoridade);
+    }
+
+    // Classe interna para armazenar informações de cada site
+    private static class SiteAutoridade {
+        private final int site;
+        private final double autoridade;
+
+        public SiteAutoridade(int site, double autoridade) {
+            this.site = site;
+            this.autoridade = autoridade;
+        }
+
+        public int getSite() {
+            return site;
+        }
+
+        public double getAutoridade() {
+            return autoridade;
+        }
+    }
+
+    public static void main(String[] args) {
+        // Calcula o vetor de autoridade
+        double[] vetorAutoridade = calcularAutoridade(A, 10, 1e-6);
+
+        // Mostra os resultados
+        mostrarResultados(vetorAutoridade);
+    }
+}
