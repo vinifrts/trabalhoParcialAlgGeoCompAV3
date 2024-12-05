@@ -1,0 +1,119 @@
+import java.util.*;
+
+public class questaoSeis {
+    public static double[][] transpose(double[][] matriz) {
+        double[][] transposta = new double[matriz[0].length][matriz.length];
+        for (int i = 0; i < matriz.length; i++) {
+            for (int j = 0; j < matriz[0].length; j++) {
+                transposta[j][i] = matriz[i][j];
+            }
+        }
+        return transposta;
+    }
+
+    public static double[][] multiplicarMatrizes(double[][] m1, double[][] m2) {
+        double[][] resultado = new double[m1.length][m2[0].length];
+        for (int i = 0; i < m1.length; i++) {
+            for (int j = 0; j < m2[0].length; j++) {
+                for (int k = 0; k < m2.length; k++) {
+                    resultado[i][j] += m1[i][k] * m2[k][j];
+                }
+            }
+        }
+        return resultado;
+    }
+
+    public static double norma(double[] vetor) {
+        return Math.sqrt(Arrays.stream(vetor).map(v -> v * v).sum());
+    }
+
+    public static double[] normalizar(double[] vetor) {
+        double norma = norma(vetor);
+        return Arrays.stream(vetor).map(v -> v / norma).toArray();
+    }
+
+    public static double[] multiplicarMatrizVetor(double[][] matriz, double[] vetor) {
+        double[] resultado = new double[matriz.length];
+        for (int i = 0; i < matriz.length; i++) {
+            for (int j = 0; j < vetor.length; j++) {
+                resultado[i] += matriz[i][j] * vetor[j];
+            }
+        }
+        return resultado;
+    }
+
+    public static double[] calcularAutoridade(double[][] A, int iteracoes, double tolerancia) {
+        double[][] At = transpose(A);
+        double[][] AtA = multiplicarMatrizes(At, A);
+
+        double[] a_k = new double[AtA.length];
+        Arrays.fill(a_k, 1.0);
+        a_k = normalizar(a_k);
+
+        double[] a_k1 = new double[a_k.length];
+        for (int i = 0; i < iteracoes; i++) {
+            a_k1 = multiplicarMatrizVetor(AtA, a_k);
+            a_k1 = normalizar(a_k1);
+
+            boolean convergiu = true;
+            for (int j = 0; j < a_k.length; j++) {
+                if (Math.abs(a_k[j] - a_k1[j]) >= tolerancia) {
+                    convergiu = false;
+                    break;
+                }
+            }
+
+            if (convergiu) break;
+            a_k = Arrays.copyOf(a_k1, a_k1.length);
+        }
+
+        return a_k1;
+    }
+
+    public static void main(String[] args) {
+        double[][] A = {
+                {0, 1, 1, 0, 1, 1, 0, 0, 0, 1},
+                {0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+                {0, 1, 1, 0, 0, 1, 1, 0, 0, 1},
+                {0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
+                {0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
+                {0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+                {0, 1, 1, 0, 0, 1, 0, 1, 0, 1},
+                {0, 0, 0, 0, 0, 1, 0, 0, 0, 0}
+        };
+
+        double[] vetorAutoridade = calcularAutoridade(A, 10, 1e-6);
+
+        // Criando lista de sites classificados
+        List<Site> siteClassificados = new ArrayList<>();
+        for (int i = 0; i < vetorAutoridade.length; i++) {
+            siteClassificados.add(new Site(i + 1, vetorAutoridade[i]));
+        }
+
+        // Ordenando sites por autoridade
+        Collections.sort(siteClassificados, (s1, s2) -> Double.compare(s2.autoridade, s1.autoridade));
+
+        // Imprimindo resultados
+        System.out.println("Vetor de Autoridade:");
+        for (double valor : vetorAutoridade) {
+            System.out.printf("%.6f ", valor);
+        }
+        System.out.println("\n\nSites Classificados:");
+        for (Site site : siteClassificados) {
+            System.out.printf("Site %d: %.6f%n", site.numero, site.autoridade);
+        }
+    }
+
+    // Classe interna para representar um site
+    static class Site {
+        int numero;
+        double autoridade;
+
+        Site(int numero, double autoridade) {
+            this.numero = numero;
+            this.autoridade = autoridade;
+        }
+    }
+}
